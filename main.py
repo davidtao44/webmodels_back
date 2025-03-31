@@ -36,7 +36,8 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 users_db = {}
 
 # Ollama API configuration
-OLLAMA_API_BASE = "http://localhost:11434/api"
+# OLLAMA_API_BASE = "http://localhost:11434/api"
+EXO_API_BASE = "http://localhost:52415/v1/chat"
 
 # Models
 class User(BaseModel):
@@ -174,13 +175,13 @@ async def chat_with_model(
             # Prepare the request to Ollama
             ollama_request = {
                 "model": chat_message.model,
-                "prompt": chat_message.message,
-                "stream": False
+                "messages": [{"role": "user", "content": chat_message.message}],
+                "temperature": 0.2
             }
             
             # Send request to Ollama
             response = await client.post(
-                f"{OLLAMA_API_BASE}/generate",
+                f"{EXO_API_BASE}/completions",
                 json=ollama_request,
                 timeout=120.0  # Increased timeout to 120 seconds
             )
@@ -193,10 +194,13 @@ async def chat_with_model(
             
             # Parse the response
             result = response.json()
+
+            assistant_content = result["choices"][0]["message"]["content"]  # Contenido del asistente
+            model_name = result["model"]  # Nombre del modelo (ej: "llama-3.2-3b")
             
             return {
-                "response": result.get("response", "No response from model"),
-                "model": chat_message.model
+                "response": assistant_content,
+                "model": model_name
             }
             
     except httpx.RequestError as exc:
